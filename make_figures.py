@@ -111,6 +111,7 @@ def _load():
     if _f("fewshot_calib_curve.csv"): d["fc_n"] = pd.read_csv(_f("fewshot_calib_curve.csv"))
     if _f("exstress_fewshot_calib.csv"): d["fc_e"] = pd.read_csv(_f("exstress_fewshot_calib.csv"))
     if _f("nurse_dca_raw_vs_recal.csv"): d["dca"] = pd.read_csv(_f("nurse_dca_raw_vs_recal.csv"))
+    if _f("nurse_dca_bands.csv"): d["dca_bands"] = pd.read_csv(_f("nurse_dca_bands.csv"))
     return d
 
 
@@ -246,15 +247,23 @@ def fig4(d):
 
 # ---------------- FIGURE 5: decision curve (2 panels) ----------------
 def fig5(d):
-    if "dca" not in d: print("[skip] fig5"); return
-    t = d["dca"]; th = t.threshold.values
+    # Prefer the bootstrap-band table (identical point curves, plus 95% bands).
+    if "dca_bands" in d:
+        t = d["dca_bands"]; has_band = True
+    elif "dca" in d:
+        t = d["dca"]; has_band = False
+    else:
+        print("[skip] fig5"); return
+    th = t.threshold.values
     ref = np.maximum(t.nb_all.values, 0.0)
-    sup_frac = float((t.nb_recal.values > ref).mean())
     fig, axs = plt.subplots(1, 2, figsize=(7.2, 3.3))
     a = axs[0]; _grid(a)
-    # decision-useful region shading (recal > best reference)
-    a.fill_between(th, ref, t.nb_recal.values, where=t.nb_recal.values > ref,
-                   color=CB["orange"], alpha=0.14, linewidth=0, zorder=1)
+    # subject-level 95% bootstrap bands
+    if has_band:
+        a.fill_between(th, t.recal_lo.values, t.recal_hi.values,
+                       color=CB["orange"], alpha=0.18, linewidth=0, zorder=1)
+        a.fill_between(th, t.raw_lo.values, t.raw_hi.values,
+                       color=CB["blue"], alpha=0.10, linewidth=0, zorder=1)
     a.plot(th, t.nb_recal, color=CB["orange"], lw=2.2, label="Recalibrated", zorder=4)
     a.plot(th, t.nb_raw, color=CB["blue"], lw=1.6, label="Uncalibrated", zorder=3)
     a.plot(th, t.nb_all, color=CB["grey"], lw=1.2, ls="--", label="Treat all", zorder=2)
@@ -265,16 +274,15 @@ def fig5(d):
     a.set_ylim(max(-0.3, t.nb_all.min()), ymax * 1.40)   # headroom for the legend
     a.legend(loc="upper center", ncol=2, bbox_to_anchor=(0.5, 1.0),
              columnspacing=1.4, handlelength=1.7)
-    _lab = "Decision-useful over %.0f%% of thresholds" % (sup_frac * 100)
-    a.annotate(_lab,
-               xy=(th[int(len(th)*0.7)], t.nb_recal.values[int(len(th)*0.7)]),
-               xytext=(0.50, 0.42), textcoords="axes fraction", fontsize=8.5,
-               color=CB["orange"], ha="left",
-               arrowprops=dict(arrowstyle="->", color=CB["orange"], lw=1.0))
-    # (b) incremental net benefit
+    if has_band:
+        a.text(0.03, 0.05, "shaded: subject-level 95% bootstrap",
+               transform=a.transAxes, fontsize=7.5, color=CB["grey"], ha="left", va="bottom")
+    # (b) incremental net benefit, with the recalibrated band
     b = axs[1]; _grid(b)
     inc_r = t.nb_recal.values - ref; inc_u = t.nb_raw.values - ref
-    b.fill_between(th, 0, inc_r, where=inc_r > 0, color=CB["orange"], alpha=0.18, linewidth=0, zorder=1)
+    if has_band:
+        b.fill_between(th, t.recal_lo.values - ref, t.recal_hi.values - ref,
+                       color=CB["orange"], alpha=0.16, linewidth=0, zorder=1)
     b.plot(th, inc_r, color=CB["orange"], lw=2.0, label="Recalibrated", zorder=3)
     b.plot(th, inc_u, color=CB["blue"], lw=1.6, label="Uncalibrated", zorder=3)
     b.axhline(0.0, color=CB["black"], lw=0.9, ls=":", zorder=2)
