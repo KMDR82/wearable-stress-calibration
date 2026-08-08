@@ -17,7 +17,7 @@ def load(name):
     p = find(name)
     return (pd.read_csv(p), p) if p else (None, None)
 
-# ===================== stats_tests.py (birebir) =====================
+# ===================== stats_tests.py (verbatim) =====================
 def mcnemar_test(y_true, pred1, pred2):
     y_true=np.asarray(y_true).astype(int); pred1=np.asarray(pred1).astype(int); pred2=np.asarray(pred2).astype(int)
     c1=(pred1==y_true); c2=(pred2==y_true)
@@ -70,7 +70,7 @@ def spiegelhalter_z(y_true,prob):
     if den==0: return dict(z=0.0,p_value=1.0)
     z=num/den; return dict(z=float(z),p_value=float(2*stats.norm.sf(abs(z))))
 
-# ===================== calibration.py (birebir) =====================
+# ===================== calibration.py (verbatim) =====================
 def _logit(p,eps=1e-7): p=np.clip(p,eps,1-eps); return np.log(p/(1-p))
 def brier(y,p): return float(np.mean((np.asarray(p,float)-np.asarray(y,float))**2))
 def ece(y,p,nb):
@@ -131,7 +131,7 @@ def main():
         def aligned(m): return d[d.method==m].sort_values("fold", kind="stable").reset_index(drop=True)
         gb,ssl,sc=aligned("gb"),aligned("deep_ssl"),aligned("deep_scratch")
         ok = len(gb)==len(ssl)==len(sc) and (gb.y_true.values==ssl.y_true.values).all() and (gb.y_true.values==sc.y_true.values).all()
-        print("  hizalama (ayni pencere sirasi):", "OK" if ok else "UYARI - y_true eslesmedi")
+        print("  alignment (same window order):", "OK" if ok else "WARNING - y_true mismatch")
         y=gb.y_true.values
         for lab,other in (("gb vs ssl",ssl),("gb vs scratch",sc)):
             dl=delong_roc_test(y,gb.prob.values,other.prob.values)

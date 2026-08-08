@@ -124,7 +124,7 @@ def discover_subjects(root):
 
 
 def synthetic_subject(cfg, sid, n_windows=60, n_channels=4, rng=None):
-    """Plumbing testi için: deneğe-özgü kayma + stres sınıfı arası ayrılabilirlik."""
+    """For the plumbing test: per-subject shift plus separability between stress classes."""
     rng = rng or np.random.default_rng(cfg.seed + sid)
     T = int(cfg.window_sec * cfg.wrist_fs)
     subj_shift = rng.normal(0, 0.5, size=(n_channels, 1))
@@ -133,7 +133,7 @@ def synthetic_subject(cfg, sid, n_windows=60, n_channels=4, rng=None):
     feat_X = []
     for i in range(n_windows):
         base = rng.normal(0, 1, size=(n_channels, T)) + subj_shift
-        # stres sınıfı: ilk kanalda hafif frekans/genlik farkı
+        # stress class: slight frequency/amplitude difference in the first channel
         if y[i] == 1:
             t = np.arange(T) / cfg.wrist_fs
             base[0] += 0.6 * np.sin(2 * np.pi * 1.4 * t)

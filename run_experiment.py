@@ -25,12 +25,12 @@ def _logit(p, eps=1e-7):
 
 
 def load_all(cfg):
-    """Döndürür: dict[sid] = {'wrist':(deepX,featX,y), 'chest':(deepX,featX,y)}."""
+    """Returns: dict[sid] = {'wrist':(deepX,featX,y), 'chest':(deepX,featX,y)}."""
     use_demo = cfg.demo_mode or not TORCH_OK or not os.path.isdir(cfg.wesad_root)
     cfg.demo_mode = use_demo
     subjects = {}
     if use_demo:
-        for sid in range(2, 12):  # 10 sahte denek
+        for sid in range(2, 12):  # 10 synthetic subjects
             dX, fX, y = dw.synthetic_subject(cfg, sid, n_windows=60, n_channels=4)
             subjects[sid] = {"wrist": (dX, fX, y), "chest": (dX, fX, y)}
         return subjects, True
@@ -124,8 +124,8 @@ def run_loso(subjects, cfg, pred_rows, result_rows, demo):
 
 
             if "deep_ssl" in methods and cfg.ablate_calibration_on_off and TORCH_OK and not demo:
-                # basitçe test logit'inden T tahmini YAPMA (sızıntı); train-val ile yapılmalı.
-                # Burada train'in bir kısmını val ayırıp T fit ediyoruz:
+                # do NOT estimate T from the test logits (leakage); use a train-val split instead.
+                # here we hold out part of train as validation and fit T:
                 val_idx = sel[: max(2, len(sel) // 5)]
                 val_logit = M.predict_logits(clf1, Xtr_d[val_idx], cfg)
                 T = cal.fit_temperature(val_logit, ytr[val_idx])
@@ -152,7 +152,6 @@ def run_site_shift(subjects, cfg, result_rows, pred_rows, demo):
             ytr = np.concatenate([subjects[s][src][2] for s in tr], axis=0)
             Xte, yte = subjects[test_sid][dst][1], subjects[test_sid][dst][2]
             if Xtr.shape[1] != Xte.shape[1]:
- )
                 k = min(Xtr.shape[1], Xte.shape[1]); Xtr, Xte = Xtr[:, :k], Xte[:, :k]
             prob = bl.fit_predict_proba(bl.gb_baseline(cfg.seed), Xtr, ytr, Xte)
             m = evaluate_probs(yte, prob)
@@ -166,9 +165,9 @@ def run_site_shift(subjects, cfg, result_rows, pred_rows, demo):
                                       prob=float(p), y_true=int(yt), demo=demo))
 
 
-# ----------------------------- ablasyon: LOSO vs random -----------------------------
+# ----------------------------- ablation: LOSO vs random -----------------------------
 def run_loso_vs_random(subjects, cfg, ablation_rows, demo):
-    """DÜRÜST ablasyon: rastgele bölme, özne-dışıya kıyasla performansı şişirir mi?"""
+    """Honest ablation: does a random split inflate performance relative to subject-independent?"""
     sids = sorted(subjects.keys())
     rng = np.random.default_rng(cfg.seed)
     Xf = np.concatenate([subjects[s]["wrist"][1] for s in sids], axis=0)
@@ -255,7 +254,7 @@ def main():
     np.random.seed(cfg.seed)
 
     subjects, demo = load_all(cfg)
-    print(f"[info] {'DEMO (SENTETİK — raporlanamaz)' if demo else 'WESAD'} | denek sayısı={len(subjects)}")
+    print(f"[info] {'DEMO (SYNTHETIC - not reportable)' if demo else 'WESAD'} | n_subjects={len(subjects)}")
 
     pred_rows, result_rows, stats_rows, dc_rows, rel_rows, ablation_rows = [], [], [], [], [], []
 

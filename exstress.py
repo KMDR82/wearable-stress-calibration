@@ -68,7 +68,7 @@ def build_v1(root):
             w += WIN
         if fX:
             feat[sid] = np.array(fX, np.float32); ys[sid] = np.array(Y)
-        print(sid, len(fX), "pencere, stres", round(float(np.mean(Y)), 2) if Y else None, flush=True)
+        print(sid, len(fX), "windows, stress", round(float(np.mean(Y)), 2) if Y else None, flush=True)
     return feat, ys
 
 
@@ -84,7 +84,7 @@ def _ece(y, p, nb=10):
 def run(root, out_dir="/kaggle/working", seed=1337):
     feat, ys = build_v1(root)
     sids = [s for s in feat if len(np.unique(ys[s])) > 1]
-    print("\ngeçerli LOSO fold:", len(sids), "| toplam pencere:", sum(len(ys[s]) for s in feat), flush=True)
+    print("\nvalid LOSO folds:", len(sids), "| total windows:", sum(len(ys[s]) for s in feat), flush=True)
     rows = []
     for test in sids:
         tr = [s for s in feat if s != test]
@@ -96,9 +96,9 @@ def run(root, out_dir="/kaggle/working", seed=1337):
     R = pd.DataFrame(rows, columns=["fold", "prob", "y_true"])
     R.to_csv(out_dir + "/exstress_loso_pred.csv", index=False)
     Y, P = R.y_true.values, R.prob.values
-    print(f"\n[GB] HAVUZ AUC={roc_auc_score(Y,P):.3f} ECE={_ece(Y,P):.3f} Brier={brier_score_loss(Y,P):.3f} prevalans={Y.mean():.2f}", flush=True)
+    print(f"\n[GB] POOLED AUC={roc_auc_score(Y,P):.3f} ECE={_ece(Y,P):.3f} Brier={brier_score_loss(Y,P):.3f} prevalence={Y.mean():.2f}", flush=True)
 
-    # few-shot özne-uyarlamalı kalibrasyon (Nurse ile aynı)
+    # few-shot subject-adaptive calibration (same as Nurse)
     lo = lambda p: np.log(np.clip(p, 1e-6, 1 - 1e-6) / (1 - np.clip(p, 1e-6, 1 - 1e-6)))
     rng = np.random.default_rng(0); curve = []
     for k in [0, 5, 10, 20, 40]:
@@ -119,6 +119,6 @@ def run(root, out_dir="/kaggle/working", seed=1337):
             if es:
                 per.append(np.mean(es))
         curve.append(dict(k=k, ece_mean=round(float(np.mean(per)), 3), ece_std=round(float(np.std(per)), 3), n_fold=len(per)))
-    C = pd.DataFrame(curve); print("\nfew-shot kalibrasyon eğrisi:\n", C.to_string(index=False), flush=True)
+    C = pd.DataFrame(curve); print("\nfew-shot calibration curve:\n", C.to_string(index=False), flush=True)
     C.to_csv(out_dir + "/exstress_fewshot_calib.csv", index=False)
     return R, C

@@ -26,17 +26,17 @@ def main(csv_path, cfg, out_dir="/kaggle/working", label_fractions=(1.0,), seed=
     os.makedirs(out_dir, exist_ok=True)
     deep, feat, ys = nd.build_nurse_windows(csv_path)
     sids = list(deep.keys())
-    print("özne:", len(sids), "toplam pencere:", sum(len(ys[s]) for s in sids), flush=True)
+    print("subjects:", len(sids), "total windows:", sum(len(ys[s]) for s in sids), flush=True)
     in_ch = deep[sids[0]].shape[1]
 
 
     pool = np.concatenate([deep[s] for s in sids], 0)
     ckpt = os.path.join(out_dir, "ssl_nurse.pt")
     enc_ssl = M.pretrain_ssl(pool, cfg, in_ch, ckpt)
-    print("SSL ön-eğitim bitti", flush=True)
+    print("SSL pretraining done", flush=True)
 
-    valid = [s for s in sids if len(np.unique(ys[s])) > 1]  # iki sınıflı test fold'ları
-    print("geçerli LOSO fold:", len(valid), flush=True)
+    valid = [s for s in sids if len(np.unique(ys[s])) > 1]  # test folds with both classes
+    print("valid LOSO folds:", len(valid), flush=True)
     rng = np.random.default_rng(seed)
     preds = []
 
@@ -47,7 +47,7 @@ def main(csv_path, cfg, out_dir="/kaggle/working", label_fractions=(1.0,), seed=
         Xte_d, Xte_f, yte = deep[test], feat[test], ys[test]
 
         for frac in label_fractions:
-            if frac < 1.0:  # sınıf-dengeli az-etiket
+            if frac < 1.0:  # class-balanced low-label subset
                 idx = []
                 for c in (0, 1):
                     ci = np.where(yd == c)[0]
@@ -62,7 +62,8 @@ def main(csv_path, cfg, out_dir="/kaggle/working", label_fractions=(1.0,), seed=
 
             enc0 = M.build_encoder(in_ch, cfg)
             clf0 = M.train_classifier(enc0, Xd[idx], yd[idx], cfg)
-            psc = _sig(M.predict_logits(clf0, Xte_d, cfg))            enc1 = M.build_encoder(in_ch, cfg); enc1.load_state_dict(enc_ssl.state_dict())
+            psc = _sig(M.predict_logits(clf0, Xte_d, cfg))
+            enc1 = M.build_encoder(in_ch, cfg); enc1.load_state_dict(enc_ssl.state_dict())
             clf1 = M.train_classifier(enc1, Xd[idx], yd[idx], cfg)
             pssl = _sig(M.predict_logits(clf1, Xte_d, cfg))
 
@@ -75,7 +76,7 @@ def main(csv_path, cfg, out_dir="/kaggle/working", label_fractions=(1.0,), seed=
 
     P = pd.DataFrame(preds)
     P.to_csv(os.path.join(out_dir, "nurse_deep_pred.csv"), index=False)
-    print("\n=== HAVUZ ÖZET (frac=1.0) ===", flush=True)
+    print("\n=== POOLED SUMMARY (frac=1.0) ===", flush=True)
     for name in ("gb", "deep_scratch", "deep_ssl"):
         g = P[(P.method == name) & (P.label_frac == 1.0)]
         if len(g):

@@ -33,7 +33,7 @@ def expected_calibration_error(y_true, prob, n_bins=15):
 
 
 def reliability_table(y_true, prob, n_bins=15):
-    """Reliability diyagramı için bin-bin tablo (CSV'ye yazılır)."""
+    """Per-bin reliability table (written to CSV)."""
     y_true = np.asarray(y_true, dtype=float)
     prob = np.asarray(prob, dtype=float)
     bins = np.linspace(0.0, 1.0, n_bins + 1)
@@ -54,7 +54,7 @@ def reliability_table(y_true, prob, n_bins=15):
 
 
 def fit_temperature(logits_val, y_val):
-    """Val seti üstünde tek skaler sıcaklık T'yi NLL minimize ederek bul (T>0)."""
+    """Fit a single scalar temperature T on the validation set by minimising NLL (T>0)."""
     logits_val = np.asarray(logits_val, dtype=float)
     y_val = np.asarray(y_val, dtype=float)
 
@@ -76,13 +76,13 @@ def apply_temperature(logits, T):
 def calibration_slope_intercept(y_true, prob):
     """
     Cox kalibrasyon: outcome ~ logit(p).
-    İdeal: slope=1, intercept=0. slope<1 -> aşırı-güven (overfit), intercept -> sistematik kayma.
+    Ideal: slope=1, intercept=0. slope<1 -> over-confidence (overfit); intercept -> systematic shift.
     """
     y_true = np.asarray(y_true, dtype=int)
     x = _logit(np.asarray(prob, dtype=float)).reshape(-1, 1)
     if len(np.unique(y_true)) < 2:
         return dict(slope=np.nan, intercept=np.nan)
-    # C çok büyük -> pratikte cezasız; tüm sklearn sürümleriyle uyumlu (penalty=None deprecation'ından kaçınır)
+    # very large C -> effectively unpenalised; compatible with all sklearn versions (avoids the penalty=None deprecation)
     lr = LogisticRegression(C=1e12, solver="lbfgs", max_iter=1000)
     lr.fit(x, y_true)
     return dict(slope=float(lr.coef_[0, 0]), intercept=float(lr.intercept_[0]))

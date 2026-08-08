@@ -32,7 +32,7 @@ def build_nurse_windows(csv_path, fs=32, win_sec=60, gap_s=1.0, verbose=True):
     for nid, g in df.groupby("id"):
         g = g.sort_values("datetime").reset_index(drop=True)
         dt = g["datetime"].astype("int64").values
-        sess = np.cumsum(np.diff(dt, prepend=dt[0]) > int(gap_s * 1e9))  # >1s -> yeni vardiya
+        sess = np.cumsum(np.diff(dt, prepend=dt[0]) > int(gap_s * 1e9))  # >1s -> new shift
         sig_raw = g[CH].values.astype(np.float32)
         sig_n = _robust(sig_raw)
         lab = g["label"].values.astype(int)
@@ -55,6 +55,6 @@ def build_nurse_windows(csv_path, fs=32, win_sec=60, gap_s=1.0, verbose=True):
         if dX:
             deep[nid] = np.stack(dX); feat[nid] = np.array(fX, np.float32); ys[nid] = np.array(Y)
         if verbose:
-            print(nid, len(dX), "pencere, stres",
+            print(nid, len(dX), "windows, stress",
                   round(float(np.mean(Y)), 2) if Y else None, flush=True)
     return deep, feat, ys

@@ -13,16 +13,16 @@ def mcnemar_test(y_true, pred1, pred2):
     pred2 = np.asarray(pred2).astype(int)
     c1 = (pred1 == y_true)
     c2 = (pred2 == y_true)
-    b = int(np.sum(c1 & ~c2))   # 1 doğru, 2 yanlış
-    c = int(np.sum(~c1 & c2))   # 1 yanlış, 2 doğru
+    b = int(np.sum(c1 & ~c2))   # model 1 correct, model 2 wrong
+    c = int(np.sum(~c1 & c2))   # model 1 wrong, model 2 correct
     n = b + c
     if n == 0:
         return dict(b=b, c=c, n_discordant=0, statistic=0.0, p_value=1.0, method="degenerate")
     if n < 25:
-        # exact iki-yanlı binom testi (p=0.5)
+        # exact two-sided binomial test (p=0.5)
         p = float(stats.binomtest(min(b, c), n, 0.5, alternative="two-sided").pvalue)
         return dict(b=b, c=c, n_discordant=n, statistic=float(min(b, c)), p_value=p, method="exact_binomial")
-    stat = (abs(b - c) - 1) ** 2 / n  # süreklilik düzeltmeli, df=1
+    stat = (abs(b - c) - 1) ** 2 / n  # continuity-corrected, df=1
     p = float(stats.chi2.sf(stat, df=1))
     return dict(b=b, c=c, n_discordant=n, statistic=float(stat), p_value=p, method="chi2_continuity")
 
@@ -72,7 +72,7 @@ def delong_auc_variance(y_true, prob):
 
     y_true = np.asarray(y_true).astype(int)
     prob = np.asarray(prob, dtype=float)
-    order = np.argsort(-y_true, kind="mergesort")  # pozitifler (1) önce
+    order = np.argsort(-y_true, kind="mergesort")  # positives (1) first
     m = int(y_true.sum())
     preds = prob[order][None, :]
     aucs, cov = _fast_delong(preds, m)

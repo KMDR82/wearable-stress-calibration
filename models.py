@@ -6,7 +6,7 @@ try:
     import torch
     import torch.nn as nn
     TORCH_OK = True
-except Exception:  # kapta torch yoksa
+except Exception:  # if torch is unavailable in the container
     TORCH_OK = False
 
 
@@ -92,7 +92,7 @@ if TORCH_OK:
         X = torch.tensor(unlabeled_X, dtype=torch.float32)
         n = len(X)
         start_epoch = 0
-        if os.path.exists(ckpt_path):  # devam-et (12 sa/oturum kotası için)
+        if os.path.exists(ckpt_path):  # resume (for the 12 h/session quota)
             ck = torch.load(ckpt_path, map_location=dev)
             model.load_state_dict(ck["model"]); opt.load_state_dict(ck["opt"])
             start_epoch = ck["epoch"]

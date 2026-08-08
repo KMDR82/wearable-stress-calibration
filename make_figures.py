@@ -252,7 +252,7 @@ def fig5(d):
     sup_frac = float((t.nb_recal.values > ref).mean())
     fig, axs = plt.subplots(1, 2, figsize=(7.2, 3.3))
     a = axs[0]; _grid(a)
-    # karar-faydalı bölge gölgesi (recal > en iyi referans)
+    # decision-useful region shading (recal > best reference)
     a.fill_between(th, ref, t.nb_recal.values, where=t.nb_recal.values > ref,
                    color=CB["orange"], alpha=0.14, linewidth=0, zorder=1)
     a.plot(th, t.nb_recal, color=CB["orange"], lw=2.2, label="Recalibrated", zorder=4)
@@ -262,7 +262,7 @@ def fig5(d):
     a.set_xlabel("Threshold probability"); a.set_ylabel("Net benefit")
     a.set_xlim(th.min(), th.max())
     ymax = max(t.nb_recal.max(), t.nb_raw.max())
-    a.set_ylim(max(-0.3, t.nb_all.min()), ymax * 1.40)   # üstte lejant için boşluk
+    a.set_ylim(max(-0.3, t.nb_all.min()), ymax * 1.40)   # headroom for the legend
     a.legend(loc="upper center", ncol=2, bbox_to_anchor=(0.5, 1.0),
              columnspacing=1.4, handlelength=1.7)
     _lab = "Decision-useful over %.0f%% of thresholds" % (sup_frac * 100)
@@ -271,7 +271,7 @@ def fig5(d):
                xytext=(0.50, 0.42), textcoords="axes fraction", fontsize=8.5,
                color=CB["orange"], ha="left",
                arrowprops=dict(arrowstyle="->", color=CB["orange"], lw=1.0))
-    # (b) artımsal net-fayda
+    # (b) incremental net benefit
     b = axs[1]; _grid(b)
     inc_r = t.nb_recal.values - ref; inc_u = t.nb_raw.values - ref
     b.fill_between(th, 0, inc_r, where=inc_r > 0, color=CB["orange"], alpha=0.18, linewidth=0, zorder=1)
@@ -286,10 +286,10 @@ def fig5(d):
 
 
 def main():
-    print("CSV_DIR:", sorted(os.listdir(CSV_DIR)) if os.path.isdir(CSV_DIR) else "YOK", flush=True)
+    print("CSV_DIR:", sorted(os.listdir(CSV_DIR)) if os.path.isdir(CSV_DIR) else "MISSING", flush=True)
     d = _load()
     fig1(d); fig2(d); fig3(d); fig4(d); fig5(d)
-    print("Şekiller ->", OUT_DIR, flush=True)
+    print("Figures ->", OUT_DIR, flush=True)
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ class Config:
    
     wesad_root: str = "/kaggle/input/wesad/WESAD"
    
-    second_stress_root: str = ""  # boşsa cross-dataset adımı atlanır
+    second_stress_root: str = ""  # if empty, the cross-dataset step is skipped
 
     out_dir: str = "/kaggle/working/outputs"
     ckpt_dir: str = "/kaggle/working/checkpoints"
